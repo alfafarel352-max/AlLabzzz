@@ -6,15 +6,15 @@
     
     <!-- SEO & Meta Tags -->
     <title>AL Production | Roblox Asset Hub</title>
-    <meta name="description" content="A minimalist, dark-mode specialized file hosting interface for Roblox assets (.rbxm, .rbxl, etc).">
-    <meta property="og:title" content="AL Production | Roblox Asset Hub">
-    <meta property="og:description" content="Secure and fast Roblox asset hosting.">
-    <meta property="og:type" content="website">
+    <meta name="description" content="A minimalist, dark-mode specialized file hosting interface for Roblox assets.">
     
-    <!-- Self-contained Favicon (Box Emoji) -->
+    <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
 
-    <!-- Tailwind CSS (CDN for standalone deployment) -->
+    <!-- Supabase JS (CDN - Lebih stabil untuk hosting statis) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -22,12 +22,12 @@
           extend: {
             colors: {
               al: {
-                dark: '#0f172a', // Slate 950
-                card: '#1e293b', // Slate 800
-                accent: '#06b6d4', // Cyan 500
-                hover: '#0891b2', // Cyan 600
-                text: '#e2e8f0', // Slate 200
-                muted: '#94a3b8', // Slate 400
+                dark: '#0f172a',
+                card: '#1e293b',
+                accent: '#06b6d4',
+                hover: '#0891b2',
+                text: '#e2e8f0',
+                muted: '#94a3b8',
               }
             },
             fontFamily: {
@@ -38,30 +38,19 @@
       }
     </script>
     <style>
-      body {
-        background-color: #0f172a;
-        color: #e2e8f0;
-      }
-      /* Custom Scrollbar */
+      body { background-color: #0f172a; color: #e2e8f0; }
       ::-webkit-scrollbar { width: 8px; }
       ::-webkit-scrollbar-track { background: #0f172a; }
       ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-      ::-webkit-scrollbar-thumb:hover { background: #334155; }
-      
       .drag-active {
         border-color: #06b6d4 !important;
         background-color: rgba(6, 182, 212, 0.1) !important;
         box-shadow: 0 0 30px rgba(6, 182, 212, 0.15);
       }
-      
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-      .animate-spin-custom {
-        animation: spin 1s linear infinite;
-      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .animate-spin-custom { animation: spin 1s linear infinite; }
     </style>
-<script type="importmap">
+  <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@^19.2.3",
@@ -78,7 +67,6 @@
     <header class="w-full py-6 mb-8 border-b border-gray-800">
       <div class="container mx-auto px-4 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <!-- Logo -->
           <div class="relative group">
             <div class="absolute -inset-1 bg-gradient-to-r from-cyan-400 to-blue-600 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-200"></div>
             <div class="relative w-10 h-10 bg-gradient-to-br from-gray-800 to-black rounded-lg border border-gray-700 flex items-center justify-center font-bold text-xl italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-cyan-400 to-white shadow-lg">
@@ -103,7 +91,6 @@
         <div id="drop-zone" class="relative group cursor-pointer border-2 border-dashed border-gray-700 bg-al-card rounded-2xl p-10 flex flex-col items-center justify-center text-center transition-all duration-300 ease-out hover:border-gray-600 hover:bg-gray-800">
           <input type="file" id="file-input" class="hidden" />
           
-          <!-- Default State Content -->
           <div id="upload-content">
             <div class="p-4 rounded-full bg-gray-900 mb-4 transition-transform duration-300 inline-block group-hover:scale-105">
               <svg class="w-8 h-8 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path><path d="M12 12v9"></path><path d="m16 16-4-4-4 4"></path></svg>
@@ -113,23 +100,20 @@
               Drag & drop atau klik untuk memilih file.<br/>
               <span class="text-gray-500 text-xs mt-1 block">Support: .rbxm, .rbxl, .rbxasset (Max 50MB)</span>
             </p>
-            <button class="px-6 py-2 bg-al-accent hover:bg-al-hover text-white font-semibold rounded-lg shadow-lg shadow-cyan-900/20 transition-colors pointer-events-none">
+            <button class="px-6 py-2 bg-al-accent hover:bg-al-hover text-white font-semibold rounded-lg shadow-lg shadow-cyan-900/20 pointer-events-none">
               Pilih File
             </button>
           </div>
 
-          <!-- Loading State Content (Hidden by default) -->
           <div id="upload-loading" class="hidden flex-col items-center animate-pulse">
-            <svg class="w-12 h-12 text-al-accent mb-4 animate-bounce" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M18.5 5H5.5L3 18.5H21L18.5 5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/><path d="M9.5 9.5H14.5V14.5H9.5V9.5Z" fill="currentColor"/></svg>
+            <svg class="w-12 h-12 text-al-accent mb-4 animate-bounce" viewBox="0 0 24 24" fill="currentColor"><path d="M18.5 5H5.5L3 18.5H21L18.5 5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/><path d="M9.5 9.5H14.5V14.5H9.5V9.5Z" fill="currentColor"/></svg>
             <p class="text-lg font-medium text-white">Mengupload...</p>
-            <p class="text-sm text-gray-400">Mohon tunggu sebentar</p>
           </div>
         </div>
 
-        <!-- Error Message -->
         <div id="error-container" class="hidden mt-4 p-4 bg-red-900/20 border border-red-900/50 rounded-lg flex items-center gap-3 text-red-200">
-          <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-          <span id="error-text" class="text-sm font-medium">Error message here</span>
+          <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <span id="error-text" class="text-sm font-medium">Error</span>
         </div>
       </div>
 
@@ -138,7 +122,6 @@
         <div class="flex items-center justify-between mb-4 px-2">
           <h2 class="text-lg font-semibold text-white">File Tersimpan (<span id="file-count">0</span>)</h2>
         </div>
-
         <div class="bg-al-card rounded-xl border border-gray-800 overflow-hidden shadow-2xl">
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
@@ -150,9 +133,7 @@
                   <th class="p-4 font-medium w-32 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody id="file-list-body" class="divide-y divide-gray-800">
-                <!-- Rows injected by JS -->
-              </tbody>
+              <tbody id="file-list-body" class="divide-y divide-gray-800"></tbody>
             </table>
           </div>
         </div>
@@ -161,7 +142,7 @@
       <!-- Empty State -->
       <div id="empty-state" class="text-center py-20 opacity-50 hidden">
         <div class="inline-block p-4 rounded-full bg-gray-800 mb-4">
-          <svg class="w-8 h-8 text-gray-500" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M18.5 5H5.5L3 18.5H21L18.5 5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/><path d="M9.5 9.5H14.5V14.5H9.5V9.5Z" fill="currentColor"/></svg>
+          <svg class="w-8 h-8 text-gray-500" viewBox="0 0 24 24" fill="currentColor"><path d="M18.5 5H5.5L3 18.5H21L18.5 5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/><path d="M9.5 9.5H14.5V14.5H9.5V9.5Z" fill="currentColor"/></svg>
         </div>
         <p class="text-gray-400">Belum ada file yang diupload.</p>
       </div>
@@ -178,13 +159,13 @@
 
     <!-- Footer -->
     <footer class="fixed bottom-0 w-full py-4 text-center text-xs text-gray-600 bg-al-dark/80 backdrop-blur-sm border-t border-gray-800 flex justify-center items-center gap-2">
-      <p>&copy; <span id="year"></span> AL Production. Roblox Asset Manager.</p>
-      <button id="admin-trigger" class="opacity-30 hover:opacity-100 hover:text-al-accent transition-all p-1" title="Admin Access">
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <p>&copy; <span id="year"></span> AL Production.</p>
+      <button id="admin-trigger" class="opacity-30 hover:opacity-100 hover:text-al-accent transition-all p-1">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </button>
     </footer>
 
-    <!-- Admin Login Modal -->
+    <!-- Admin Modal -->
     <div id="admin-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
       <div class="bg-al-card w-full max-w-sm p-6 rounded-2xl border border-gray-700 shadow-2xl transform scale-95 transition-transform duration-300">
         <div class="flex justify-between items-center mb-6">
@@ -196,17 +177,15 @@
         <form id="admin-form" class="space-y-4">
           <div>
             <label class="block text-xs text-gray-400 mb-1 uppercase tracking-wider">Password</label>
-            <input type="password" id="admin-password" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:border-al-accent focus:outline-none focus:ring-1 focus:ring-al-accent/50 transition-all placeholder-gray-600" placeholder="Masukkan password admin..." />
+            <input type="password" id="admin-password" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:border-al-accent focus:outline-none" placeholder="Masukkan password admin..." />
             <p id="login-error" class="text-red-400 text-xs mt-2 hidden">Password salah!</p>
           </div>
-          <button type="submit" class="w-full bg-al-accent hover:bg-al-hover text-white font-semibold py-2.5 rounded-lg transition-colors shadow-lg shadow-cyan-900/20">
-            Login
-          </button>
+          <button type="submit" class="w-full bg-al-accent hover:bg-al-hover text-white font-semibold py-2.5 rounded-lg">Login</button>
         </form>
       </div>
     </div>
 
-    <!-- Main Logic -->
-    <script type="module" src="/index.js"></script>
+    <!-- PENTING: Gunakan path relatif tanpa slash di depan -->
+    <script type="module" src="index.js"></script>
   </body>
 </html>

@@ -1,9 +1,16 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
 // KONFIGURASI SUPABASE
-// Ganti dengan Project URL dan Anon Key dari Dashboard Supabase Anda
 const SUPABASE_URL = 'https://ckuyaqrwuefixcgeqmfm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_2A7Oc4ICNUrmBKQmGNdSyw__UMWNKbm';
+
+// Gunakan Supabase global dari CDN (window.supabase)
+// Ini jauh lebih aman untuk hosting statis daripada import module langsung
+const createClient = window.supabase ? window.supabase.createClient : null;
+
+if (!createClient) {
+  console.error("Supabase SDK gagal dimuat. Cek koneksi internet atau blocklist.");
+  // Kita throw error agar tertangkap oleh loader di index.js
+  throw new Error("Gagal memuat Database Driver.");
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const BUCKET_NAME = 'roblox-assets';
@@ -15,7 +22,6 @@ const TABLE_NAME = 'files';
 export const saveFileToDB = async (file) => {
   const extension = '.' + file.name.split('.').pop()?.toLowerCase();
   const fileId = crypto.randomUUID();
-  // Membuat path unik: timestamp_namafile
   const storagePath = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
 
   // 1. Upload ke Storage
@@ -45,13 +51,12 @@ export const saveFileToDB = async (file) => {
     .single();
 
   if (dbError) {
-    // Jika gagal simpan DB, hapus file yg sudah terupload
+    // Rollback: hapus file jika DB gagal
     await supabase.storage.from(BUCKET_NAME).remove([storagePath]);
     console.error('Supabase DB Error:', dbError);
     throw new Error(dbError.message);
   }
 
-  // 3. Kembalikan format object
   return {
     id: data.id,
     name: data.name,
@@ -89,70 +94,56 @@ export const getFilesFromDB = async () => {
 };
 
 /**
- * Hapus file dari Storage dan Tabel
+ * Hapus file
  */
 export const deleteFileFromDB = async (id) => {
-  // 1. Coba ambil info file untuk hapus dari Storage
-  // Gunakan maybeSingle() agar TIDAK error jika data sudah tidak ada di DB
+  // 1. Ambil info path storage
   const { data: fileData, error: fetchError } = await supabase
     .from(TABLE_NAME)
     .select('storage_path')
     .eq('id', id)
     .maybeSingle();
 
-  if (fetchError) {
-    // Jika error koneksi atau izin select, kita throw
-    console.error("Error fetching file info for delete:", fetchError);
-    throw fetchError;
-  }
+  if (fetchError) throw fetchError;
 
-  // Jika data ditemukan, hapus file fisiknya dari Storage
-  // Note: Kita lanjut meskipun storage delete gagal (agar DB tetap bersih)
+  // 2. Hapus fisik file di Storage (jika ada)
   if (fileData && fileData.storage_path) {
     const { error: storageError } = await supabase.storage
       .from(BUCKET_NAME)
       .remove([fileData.storage_path]);
-
-    if (storageError) {
-      console.warn('Gagal menghapus file storage (mungkin sudah hilang atau permission), lanjut hapus DB:', storageError);
-    }
+      
+    if (storageError) console.warn("Storage delete warning:", storageError);
   }
 
-  // 2. Hapus record dari Tabel
+  // 3. Hapus record DB
   const { error: dbError } = await supabase
     .from(TABLE_NAME)
     .delete()
     .eq('id', id);
 
-  if (dbError) {
-    console.error("Error deleting from DB:", dbError);
-    throw dbError;
-  }
+  if (dbError) throw dbError;
   
   return true;
 };
 
 /**
- * Download file dari Storage
+ * Download file
  */
 export const downloadFileFromDB = async (id) => {
-  // 1. Ambil path file dari database
   const { data: fileData, error: fetchError } = await supabase
     .from(TABLE_NAME)
     .select('storage_path, name')
     .eq('id', id)
     .single();
 
-  if (fetchError || !fileData) throw new Error("File not found in DB");
+  if (fetchError || !fileData) throw new Error("File not found");
 
-  // 2. Download Blob dari Storage
   const { data, error: downloadError } = await supabase.storage
     .from(BUCKET_NAME)
     .download(fileData.storage_path);
 
   if (downloadError) throw downloadError;
 
-  // 3. Trigger download browser
   const url = URL.createObjectURL(data);
   const a = document.createElement('a');
   a.href = url;
