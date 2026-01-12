@@ -1,25 +1,33 @@
 // KONFIGURASI SUPABASE
 const SUPABASE_URL = 'https://ckuyaqrwuefixcgeqmfm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_2A7Oc4ICNUrmBKQmGNdSyw__UMWNKbm';
-
-// Gunakan Supabase global dari CDN (window.supabase)
-// Ini jauh lebih aman untuk hosting statis daripada import module langsung
-const createClient = window.supabase ? window.supabase.createClient : null;
-
-if (!createClient) {
-  console.error("Supabase SDK gagal dimuat. Cek koneksi internet atau blocklist.");
-  // Kita throw error agar tertangkap oleh loader di index.js
-  throw new Error("Gagal memuat Database Driver.");
-}
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const BUCKET_NAME = 'roblox-assets';
 const TABLE_NAME = 'files';
+
+let supabaseInstance = null;
+
+// Fungsi inisialisasi yang aman (Lazy Load)
+// Kita tidak melakukan inisialisasi di luar fungsi agar script tidak crash saat dimuat
+const getSupabase = () => {
+  if (supabaseInstance) return supabaseInstance;
+
+  if (!window.supabase) {
+    throw new Error("Supabase SDK gagal dimuat. Cek koneksi internet atau AdBlock.");
+  }
+
+  try {
+    supabaseInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    return supabaseInstance;
+  } catch (err) {
+    throw new Error("Gagal menghubungkan ke database: " + err.message);
+  }
+};
 
 /**
  * Upload file ke Storage Bucket dan simpan metadata ke Tabel
  */
 export const saveFileToDB = async (file) => {
+  const supabase = getSupabase();
   const extension = '.' + file.name.split('.').pop()?.toLowerCase();
   const fileId = crypto.randomUUID();
   const storagePath = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
@@ -72,10 +80,20 @@ export const saveFileToDB = async (file) => {
  * Ambil daftar file dari Tabel
  */
 export const getFilesFromDB = async () => {
-  const { data, error } = await supabase
+  const supabase = getSupabase();
+  
+  // Timeout safety: Jika koneksi stuck lebih dari 10 detik, lempar error
+  const timeoutPromise = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error("Koneksi timeout (RTO). Cek internet Anda.")), 10000)
+  );
+
+  const fetchPromise = supabase
     .from(TABLE_NAME)
     .select('*')
     .order('created_at', { ascending: false });
+
+  // Race antara fetch data vs timeout
+  const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
 
   if (error) {
     console.error('Supabase Fetch Error:', error);
@@ -97,6 +115,8 @@ export const getFilesFromDB = async () => {
  * Hapus file
  */
 export const deleteFileFromDB = async (id) => {
+  const supabase = getSupabase();
+
   // 1. Ambil info path storage
   const { data: fileData, error: fetchError } = await supabase
     .from(TABLE_NAME)
@@ -130,6 +150,8 @@ export const deleteFileFromDB = async (id) => {
  * Download file
  */
 export const downloadFileFromDB = async (id) => {
+  const supabase = getSupabase();
+
   const { data: fileData, error: fetchError } = await supabase
     .from(TABLE_NAME)
     .select('storage_path, name')

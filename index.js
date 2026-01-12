@@ -221,7 +221,17 @@ const loadData = async () => {
   } catch (e) {
     console.error(e);
     if (initialLoader) {
-        initialLoader.innerHTML = `<p class="text-red-400 text-center text-sm px-4">Gagal memuat data.<br/><span class="text-xs text-gray-500">${e.message}</span></p>`;
+        // Tampilkan error yang user-friendly
+        const msg = e.message || "Gagal terhubung ke server.";
+        initialLoader.innerHTML = `
+          <div class="flex flex-col items-center gap-3">
+            <svg class="w-10 h-10 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <p class="text-red-400 text-center text-sm px-4">Gagal memuat data.</p>
+            <p class="text-gray-500 text-xs text-center max-w-xs px-4">${msg}</p>
+            <button onclick="window.location.reload()" class="mt-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-xs rounded-lg transition-colors">
+              Coba Lagi
+            </button>
+          </div>`;
     }
   }
 };
@@ -348,7 +358,12 @@ if (adminPasswordInput) {
 
 // --- Event Listeners ---
 
-loadData();
+// Force load data immediately
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadData);
+} else {
+    loadData();
+}
 
 if (dropZone) {
     dropZone.addEventListener('click', () => {
