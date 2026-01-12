@@ -1,6 +1,8 @@
 import { saveFileToDB, getFilesFromDB, deleteFileFromDB, downloadFileFromDB } from './services/db.js';
 import { ALLOWED_EXTENSIONS, MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from './constants.js';
 
+console.log("%c AL Production %c Roblox Asset Manager Ready ", "background: #06b6d4; color: #fff; padding: 2px 4px; border-radius: 4px 0 0 4px;", "background: #1e293b; color: #e2e8f0; padding: 2px 4px; border-radius: 0 4px 4px 0;");
+
 // DOM Elements
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
@@ -28,7 +30,7 @@ let currentFiles = [];
 let isAdmin = localStorage.getItem('roblox_hub_admin') === 'true';
 
 // Set Year
-yearSpan.textContent = new Date().getFullYear();
+if(yearSpan) yearSpan.textContent = new Date().getFullYear();
 
 // --- Icons (SVG Strings) ---
 const ICONS = {
@@ -48,7 +50,7 @@ const showToast = (message, type = 'info') => {
   const borderColor = isError ? 'border-red-700' : 'border-gray-700';
   const textColor = isError ? 'text-red-100' : 'text-white';
   
-  toast.className = `fixed top-6 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl backdrop-blur-md border ${borderColor} ${bgColor} ${textColor} transform transition-all duration-500 translate-y-[-20px] opacity-0 flex items-center gap-3 font-medium text-sm sm:text-base`;
+  toast.className = `fixed top-6 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl backdrop-blur-md border ${borderColor} ${bgColor} ${textColor} transform transition-all duration-500 translate-y-[-20px] opacity-0 flex items-center gap-3 font-medium text-sm sm:text-base pointer-events-none`;
   
   // Icon based on type
   const icon = isError 
@@ -95,19 +97,20 @@ const getFileIcon = (ext) => {
 // --- App Logic ---
 
 const renderList = () => {
+  if (!fileListBody) return;
   fileListBody.innerHTML = '';
-  fileCountSpan.textContent = currentFiles.length;
+  if (fileCountSpan) fileCountSpan.textContent = currentFiles.length;
   
-  initialLoader.classList.add('hidden');
+  if (initialLoader) initialLoader.classList.add('hidden');
 
   if (currentFiles.length === 0) {
-    fileListWrapper.classList.add('hidden');
-    emptyState.classList.remove('hidden');
+    if (fileListWrapper) fileListWrapper.classList.add('hidden');
+    if (emptyState) emptyState.classList.remove('hidden');
     return;
   }
 
-  emptyState.classList.add('hidden');
-  fileListWrapper.classList.remove('hidden');
+  if (emptyState) emptyState.classList.add('hidden');
+  if (fileListWrapper) fileListWrapper.classList.remove('hidden');
 
   currentFiles.forEach(file => {
     const row = document.createElement('tr');
@@ -217,23 +220,24 @@ const loadData = async () => {
     renderList();
   } catch (e) {
     console.error(e);
-    initialLoader.innerHTML = `<p class="text-red-400 text-center text-sm px-4">Gagal memuat data.<br/><span class="text-xs text-gray-500">${e.message}</span></p>`;
+    if (initialLoader) {
+        initialLoader.innerHTML = `<p class="text-red-400 text-center text-sm px-4">Gagal memuat data.<br/><span class="text-xs text-gray-500">${e.message}</span></p>`;
+    }
   }
 };
 
 const showError = (msg) => {
-  // Use Toast for errors too if desired, but here we keep the UI container for upload context
-  errorText.textContent = msg;
-  errorContainer.classList.remove('hidden');
-  errorContainer.classList.add('animate-pulse');
-  setTimeout(() => errorContainer.classList.remove('animate-pulse'), 500);
-  
-  // Also show toast for visibility
+  if (errorText) errorText.textContent = msg;
+  if (errorContainer) {
+    errorContainer.classList.remove('hidden');
+    errorContainer.classList.add('animate-pulse');
+    setTimeout(() => errorContainer.classList.remove('animate-pulse'), 500);
+  }
   showToast(msg, 'error');
 };
 
 const hideError = () => {
-  errorContainer.classList.add('hidden');
+  if (errorContainer) errorContainer.classList.add('hidden');
 };
 
 const handleFile = async (file) => {
@@ -252,8 +256,8 @@ const handleFile = async (file) => {
     return;
   }
 
-  uploadContent.classList.add('hidden');
-  uploadLoading.classList.remove('hidden');
+  if (uploadContent) uploadContent.classList.add('hidden');
+  if (uploadLoading) uploadLoading.classList.remove('hidden');
   
   try {
     await new Promise(r => setTimeout(r, 800));
@@ -265,115 +269,126 @@ const handleFile = async (file) => {
     console.error(e);
     showError(e.message || "Gagal menyimpan file.");
   } finally {
-    uploadLoading.classList.add('hidden');
-    uploadContent.classList.remove('hidden');
-    fileInput.value = '';
+    if (uploadLoading) uploadLoading.classList.add('hidden');
+    if (uploadContent) uploadContent.classList.remove('hidden');
+    if (fileInput) fileInput.value = '';
   }
 };
 
 // --- Admin Logic ---
 
 const toggleModal = (show) => {
+  if (!adminModal) return;
   if (show) {
     adminModal.classList.remove('hidden');
     setTimeout(() => {
         adminModal.classList.remove('opacity-0');
         adminModal.querySelector('div').classList.remove('scale-95');
     }, 10);
-    adminPasswordInput.focus();
+    if (adminPasswordInput) adminPasswordInput.focus();
   } else {
     adminModal.classList.add('opacity-0');
     adminModal.querySelector('div').classList.add('scale-95');
     setTimeout(() => adminModal.classList.add('hidden'), 300);
-    adminForm.reset();
-    loginError.classList.add('hidden');
+    if (adminForm) adminForm.reset();
+    if (loginError) loginError.classList.add('hidden');
   }
 };
 
-if (isAdmin) {
+if (isAdmin && adminTrigger) {
   adminTrigger.classList.add('text-al-accent', 'opacity-100');
 }
 
-adminTrigger.addEventListener('click', () => {
-  if (isAdmin) {
-    if(confirm('Logout dari mode Admin?')) {
-        isAdmin = false;
-        localStorage.setItem('roblox_hub_admin', 'false');
-        adminTrigger.classList.remove('text-al-accent', 'opacity-100');
-        renderList();
-        showToast("Logout berhasil");
-    }
-  } else {
-    toggleModal(true);
-  }
-});
+if (adminTrigger) {
+    adminTrigger.addEventListener('click', () => {
+      if (isAdmin) {
+        if(confirm('Logout dari mode Admin?')) {
+            isAdmin = false;
+            localStorage.setItem('roblox_hub_admin', 'false');
+            adminTrigger.classList.remove('text-al-accent', 'opacity-100');
+            renderList();
+            showToast("Logout berhasil");
+        }
+      } else {
+        toggleModal(true);
+      }
+    });
+}
 
-closeModalBtn.addEventListener('click', () => toggleModal(false));
-adminModal.addEventListener('click', (e) => {
+if (closeModalBtn) closeModalBtn.addEventListener('click', () => toggleModal(false));
+if (adminModal) adminModal.addEventListener('click', (e) => {
     if(e.target === adminModal) toggleModal(false);
 });
 
-adminForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const pass = adminPasswordInput.value;
-  
-  if (pass === 'admin123') {
-    isAdmin = true;
-    localStorage.setItem('roblox_hub_admin', 'true');
-    adminTrigger.classList.add('text-al-accent', 'opacity-100');
-    renderList();
-    toggleModal(false);
-    showToast("Login Admin Berhasil");
-  } else {
-    loginError.classList.remove('hidden');
-    adminPasswordInput.classList.add('border-red-500');
-  }
-});
+if (adminForm) {
+    adminForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const pass = adminPasswordInput.value;
+      
+      if (pass === 'admin123') {
+        isAdmin = true;
+        localStorage.setItem('roblox_hub_admin', 'true');
+        if (adminTrigger) adminTrigger.classList.add('text-al-accent', 'opacity-100');
+        renderList();
+        toggleModal(false);
+        showToast("Login Admin Berhasil");
+      } else {
+        if (loginError) loginError.classList.remove('hidden');
+        if (adminPasswordInput) adminPasswordInput.classList.add('border-red-500');
+      }
+    });
+}
 
-adminPasswordInput.addEventListener('input', () => {
-    loginError.classList.add('hidden');
-    adminPasswordInput.classList.remove('border-red-500');
-});
+if (adminPasswordInput) {
+    adminPasswordInput.addEventListener('input', () => {
+        if (loginError) loginError.classList.add('hidden');
+        adminPasswordInput.classList.remove('border-red-500');
+    });
+}
 
 // --- Event Listeners ---
 
 loadData();
 
-dropZone.addEventListener('click', () => {
-  if (uploadLoading.classList.contains('hidden')) {
-    fileInput.click();
-  }
-});
+if (dropZone) {
+    dropZone.addEventListener('click', () => {
+      if (uploadLoading && uploadLoading.classList.contains('hidden')) {
+        fileInput.click();
+      }
+    });
 
-fileInput.addEventListener('change', (e) => {
-  if (e.target.files.length > 0) {
-    handleFile(e.target.files[0]);
-  }
-});
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+    });
 
-['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-  dropZone.addEventListener(eventName, (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  });
-});
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => {
+        dropZone.classList.add('drag-active');
+      });
+    });
 
-['dragenter', 'dragover'].forEach(eventName => {
-  dropZone.addEventListener(eventName, () => {
-    dropZone.classList.add('drag-active');
-  });
-});
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => {
+        dropZone.classList.remove('drag-active');
+      });
+    });
 
-['dragleave', 'drop'].forEach(eventName => {
-  dropZone.addEventListener(eventName, () => {
-    dropZone.classList.remove('drag-active');
-  });
-});
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files.length > 0) {
+        handleFile(files[0]);
+      }
+    });
+}
 
-dropZone.addEventListener('drop', (e) => {
-  const dt = e.dataTransfer;
-  const files = dt.files;
-  if (files.length > 0) {
-    handleFile(files[0]);
-  }
-});
+if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        handleFile(e.target.files[0]);
+      }
+    });
+}
